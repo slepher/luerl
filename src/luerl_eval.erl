@@ -39,12 +39,11 @@
 
 %% Internal functions which can be useful "outside".
 -export([alloc_table/2,functioncall/3,get_table_key/3,
-	 getmetamethod/3,getmetamethod/4]).
-
+         getmetamethod/3,getmetamethod/4]).
+-export([set_local_key/3]).
 %% Currently unused internal functions, to suppress warnings.
 -export([alloc_table/1,set_local_keys/3,set_local_keys_tab/3,
          get_local_key/2,set_env_name_env/4]).
--export([alloc_libs/2]).
 -import(luerl_lib, [lua_error/1]).		%Shorten this
 
 %% -compile(inline).				%For when we are optimising
@@ -296,9 +295,11 @@ set_local_keys_tab([], _, T) -> T.		%Ignore extra values
 
 get_local_key(Key, #luerl{tabs=Ts,env=[#tref{i=E}|_]}) ->
     #table{t=Tab} = ?GET_TABLE(E, Ts),
-    case orddict:find(Key, Tab) of
-	{ok,Val} -> Val;
-	error -> nil
+    case get({E, Key}) of
+        undefined ->
+            nil;
+        Val ->
+            Val
     end.
 
 %% set_env_name(Name, Val, State) -> State.
