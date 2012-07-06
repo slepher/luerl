@@ -273,11 +273,8 @@ set_local_name_env(Name, Val, Ts, Env) ->
     set_local_key_env(atom_to_binary(Name, latin1), Val, Ts, Env).
 
 set_local_key_env(K, Val, Ts, [#tref{i=E}|_]) ->
-    Store = fun (#table{t=T}=Tab) ->
-                    put({E, K}, Val),
-                    Tab
-            end,
-    ?UPD_TABLE(E, Store, Ts).
+    put({E, K}, Val),
+    Ts.
 
 set_local_keys(Ks, Vals, #luerl{tabs=Ts0,env=[#tref{i=E}|_]}=St) ->
     Store = fun (#table{t=T}=Tab) ->
@@ -326,11 +323,11 @@ set_env_key(K, Val, #luerl{tabs=Ts0,env=Env}=St) ->
     St#luerl{tabs=Ts1}.
 
 set_env_key_env(K, Val, Ts, [#tref{i=_G}]) ->	%Top table _G
-    Store = fun (#table{t=T}=Tab) ->
+    %Store = fun (#table{t=T}=Tab) ->
                     put({_G, K}, Val),
-                    Tab
-            end,
-    ?UPD_TABLE(_G, Store, Ts);
+    %                Tab
+    %        end,
+    Ts;
 set_env_key_env(K, Val, Ts, [#tref{i=E}|Es]) ->
     %% io:fwrite("seke: ~p\n", [{K,Val,E,?GET_TABLE(E, Ts)}]),
     #table{t=Tab} = ?GET_TABLE(E, Ts),		%Find the table
@@ -338,11 +335,8 @@ set_env_key_env(K, Val, Ts, [#tref{i=E}|Es]) ->
         undefined ->
             set_env_key_env(K, Val, Ts, Es);
         _ ->
-            Store = fun (#table{t=T}=Tab0) ->
                             put({E, K}, Val),
-                            Tab0
-                    end,
-	    ?UPD_TABLE(E, Store, Ts)
+            Ts
     end.
 
 get_env_name(Name, St) -> get_env_key(atom_to_binary(Name, latin1), St).
