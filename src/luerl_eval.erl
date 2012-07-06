@@ -43,8 +43,8 @@
 
 %% Currently unused internal functions, to suppress warnings.
 -export([alloc_table/1,set_local_keys/3,set_local_keys_tab/3,
-	 get_local_key/2,set_env_name_env/4]).
-
+         get_local_key/2,set_env_name_env/4]).
+-export([alloc_libs/2]).
 -import(luerl_lib, [lua_error/1]).		%Shorten this
 
 %% -compile(inline).				%For when we are optimising
