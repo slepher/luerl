@@ -1029,11 +1029,9 @@ getmetamethod(_, _, _) -> nil.			%Other types have no metatables
 
 getmetamethod_tab(#tref{i=M}, E, Ts) ->
     #table{t=Mtab} = ?GET_TABLE(M, Ts),
-    case get({M, E}) of
-        undefined ->
-            nil;
-        Mm ->
-            Mm
+    case orddict:find(E, Mtab) of
+    {ok,Mm} -> Mm;
+    error -> nil
     end;
 getmetamethod_tab(_, _, _) -> nil.		%Other types have no metatables
 
