@@ -101,17 +101,17 @@ pop_env(#luerl{env=[_|Es]}=St) ->
 alloc_table(St) -> alloc_table(orddict:new(), St).
 
 alloc_table(Itab, #luerl{tabs=Ts0,free=[N|Ns]}=St) ->
-    T = init_table(Itab),
+    T = init_table(N, Itab),
     %% io:fwrite("it1: ~p\n", [{N,T}]),
     Ts1 = ?SET_TABLE(N, T, Ts0),
     {#tref{i=N},St#luerl{tabs=Ts1,free=Ns}};
 alloc_table(Itab, #luerl{tabs=Ts0,free=[],next=N}=St) ->
-    T = init_table(Itab),
+    T = init_table(N, Itab),
     %% io:fwrite("it2: ~p\n", [{N,T}]),
     Ts1 = ?SET_TABLE(N, T, Ts0),
     {#tref{i=N},St#luerl{tabs=Ts1,next=N+1}}.
 
-init_table(Itab) ->
+init_table(N, Itab) ->
     T0 = orddict:new(),
     A0 = orddict:new(),				%These are still orddicts!
     Init = fun ({_,nil}, {T,A}) -> {T,A};	%Ignore nil values
@@ -119,9 +119,13 @@ init_table(Itab) ->
 		   case ?IS_INTEGER(K, I) of
 		       %% true -> {T,orddict:store(I, V, A)};
 		       true when I >= 1 -> {T,orddict:store(I, V, A)};
-		       _NegFalse -> {orddict:store(K, V, T),A}
+		       _NegFalse ->
+               put({N, K}, V),
+               {T, A}
 		   end;
-	       ({K,V}, {T,A}) -> {orddict:store(K, V, T),A}
+	       ({K,V}, {T,A}) ->
+                   put({N, K}, V),
+                   {T, A}
 	   end,
     {T1,A1} = lists:foldl(Init, {T0,A0}, Itab),
     #table{a=A1,t=T1,m=nil}.
@@ -157,25 +161,21 @@ set_table_key(Tab, Key, _, _) ->
 
 set_table_key_key(#tref{i=N}, Key, Val, #luerl{tabs=Ts0}=St) ->
     #table{t=Tab0,m=Meta}=T = ?GET_TABLE(N, Ts0),	%Get the table
-    case orddict:find(Key, Tab0) of
-	{ok,_} ->			    %Key exists
-	    %% Don't delete key for nil here!
-	    Tab1 = orddict:store(Key, Val, Tab0),
-	    Ts1 = ?SET_TABLE(N, T#table{t=Tab1}, Ts0),
-	    St#luerl{tabs=Ts1};
-	error ->				%Key does not exist
-	    case getmetamethod_tab(Meta, <<"__newindex">>, Ts0) of
-		nil ->
-		    %% Only add non-nil value.
-		    Tab1 = if Val =:= nil -> Tab0;
-			      true -> orddict:store(Key, Val, Tab0)
-			   end,
-		    Ts1 = ?SET_TABLE(N, T#table{t=Tab1}, Ts0),
-		    St#luerl{tabs=Ts1};
-		Meth when element(1, Meth) =:= function ->
-		    functioncall(Meth, [Key,Val], St);
-		Meth -> set_table_key(Meth, Key, Val, St)
-	    end
+    case get({N, Key}) of
+        undefined ->
+            case getmetamethod_tab(Meta, <<"__newindex">>, Ts0) of
+                nil ->
+%% Only add non-nil value.
+                    put({N, Key}, Val),
+                    St;
+                Meth when element(1, Meth) =:= function ->
+                    functioncall(Meth, [Key,Val], St);
+                Meth -> set_table_key(Meth, Key, Val, St)
+            end;
+        Val ->
+    	    %% Don't delete key for nil here!
+            put({N, Key}, Val),
+            St
     end.
 
 set_table_int_key(#tref{i=N}, Key, I, Val, #luerl{tabs=Ts0}=St) ->
@@ -228,11 +228,11 @@ get_table_key(Tab, Key, St) ->			%Just find the metamethod
 
 get_table_key_key(#tref{i=N}=T, Key, #luerl{tabs=Ts}=St) ->
     #table{t=Tab,m=Meta} = ?GET_TABLE(N, Ts),	%Get the table.
-    case orddict:find(Key, Tab) of
-	{ok,Val} -> {[Val],St};
-	error ->
-	    %% Key not present so try metamethod
-	    get_table_metamethod(T, Meta, Key, Ts, St)
+    case get({N, Key}) of
+        undefined ->
+            get_table_metamethod(T, Meta, Key, Ts, St);
+        Val ->
+            {[Val], St}
     end.
 
 get_table_int_key(#tref{i=N}=T, Key, I, #luerl{tabs=Ts}=St) ->
@@ -274,7 +274,10 @@ set_local_name_env(Name, Val, Ts, Env) ->
     set_local_key_env(atom_to_binary(Name, latin1), Val, Ts, Env).
 
 set_local_key_env(K, Val, Ts, [#tref{i=E}|_]) ->
-    Store = fun (#table{t=T}=Tab) -> Tab#table{t=orddict:store(K, Val, T)} end,
+    Store = fun (#table{t=T}=Tab) ->
+                    put({E, K}, Val),
+                    Tab
+            end,
     ?UPD_TABLE(E, Store, Ts).
 
 set_local_keys(Ks, Vals, #luerl{tabs=Ts0,env=[#tref{i=E}|_]}=St) ->
@@ -323,17 +326,22 @@ set_env_key(K, Val, #luerl{tabs=Ts0,env=Env}=St) ->
 
 set_env_key_env(K, Val, Ts, [#tref{i=_G}]) ->	%Top table _G
     Store = fun (#table{t=T}=Tab) ->
-		    Tab#table{t=orddict:store(K, Val, T)} end,
+                    put({_G, K}, Val),
+                    Tab
+            end,
     ?UPD_TABLE(_G, Store, Ts);
 set_env_key_env(K, Val, Ts, [#tref{i=E}|Es]) ->
     %% io:fwrite("seke: ~p\n", [{K,Val,E,?GET_TABLE(E, Ts)}]),
     #table{t=Tab} = ?GET_TABLE(E, Ts),		%Find the table
-    case orddict:is_key(K, Tab) of
-	true ->
-	    Store = fun (#table{t=T}=Tab0) ->
-			    Tab0#table{t=orddict:store(K, Val, T)} end,
-	    ?UPD_TABLE(E, Store, Ts);
-	false -> set_env_key_env(K, Val, Ts, Es)
+    case get({E, K}) of
+        undefined ->
+            set_env_key_env(K, Val, Ts, Es);
+        _ ->
+            Store = fun (#table{t=T}=Tab0) ->
+                            put({E, K}, Val),
+                            Tab0
+                    end,
+	    ?UPD_TABLE(E, Store, Ts)
     end.
 
 get_env_name(Name, St) -> get_env_key(atom_to_binary(Name, latin1), St).
@@ -343,9 +351,11 @@ get_env_key(K, #luerl{tabs=Ts,env=Env}) ->
 
 get_env_key_env(K, Ts, [#tref{i=E}|Es]) ->
     #table{t=Tab} = ?GET_TABLE(E, Ts),		%Get environment table
-    case orddict:find(K, Tab) of		%Check if variable in the env
-	{ok,Val} -> Val;
-	error -> get_env_key_env(K, Ts, Es)
+    case get({E, K}) of
+        undefined ->
+            get_env_key_env(K, Ts, Es);
+        Val ->
+            Val
     end;
 get_env_key_env(_, _, []) -> nil.		%The default value
 
@@ -1019,9 +1029,11 @@ getmetamethod(_, _, _) -> nil.			%Other types have no metatables
 
 getmetamethod_tab(#tref{i=M}, E, Ts) ->
     #table{t=Mtab} = ?GET_TABLE(M, Ts),
-    case orddict:find(E, Mtab) of
-	{ok,Mm} -> Mm;
-	error -> nil
+    case get({M, E}) of
+        undefined ->
+            nil;
+        Mm ->
+            Mm
     end;
 getmetamethod_tab(_, _, _) -> nil.		%Other types have no metatables
 
