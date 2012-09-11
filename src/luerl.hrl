@@ -36,6 +36,7 @@
 		meta=[],			%Data type metatables
 		env,				%Environment
 		locf=false,			%Started local function
+    with_rescue = false,
 		tag				%Unique tag
 	       }).
 

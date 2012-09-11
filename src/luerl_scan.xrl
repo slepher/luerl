@@ -250,4 +250,5 @@ is_keyword('then') -> true;
 is_keyword('true') -> true;
 is_keyword('until') -> true;
 is_keyword('while') -> true;
+is_keyword('try') -> true;
 is_keyword(_) -> false.

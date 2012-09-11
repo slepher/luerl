@@ -50,11 +50,10 @@ Terminals
 NAME NUMBER STRING
 
 'and' 'break' 'do' 'else' 'elseif' 'end' 'false' 'for' 'function' 'goto' 'if' 
-'in' 'local' 'nil' 'not' 'or' 'repeat' 'return' 'then' 'true' 'until' 'while' 
+'in' 'local' 'nil' 'not' 'or' 'repeat' 'return' 'then' 'true' 'until' 'while' 'rescue'
 
 '+' '-' '*' '/' '%' '^' '#' '==' '~=' '<=' '>=' '<' '>' '='
 '(' ')' '{' '}' '[' ']' '::' ';' ':' ',' '.' '..' '...' .
-
 
 Rootsymbol chunk.
 
@@ -64,7 +63,7 @@ Left 300 '<' '>' '<=' '>=' '~=' '=='.
 Right 400 '..'.
 Left 500 '+' '-'.
 Left 600 '*' '/' '%'.
-Unary 700 'not' '#' uminus.
+Unary 700 'not' '#' uminus 'rescue'.
 Right 800 '^'.
 
 chunk -> block : '$1'  .
@@ -226,6 +225,7 @@ binop -> exp 'or' exp : {op,line('$2'),cat('$2'),'$1','$3'}.
 unop -> 'not' exp : {op,line('$1'),cat('$1'),'$2'} .
 unop -> '#' exp :  {op,line('$1'),cat('$1'),'$2'} .
 unop -> uminus : '$1' .
+unop -> 'rescue' exp : {op, line('$1'), cat('$1'), '$2'} .
      
 uminus -> '-' exp : {op,line('$1'),'-','$2'} .
 
