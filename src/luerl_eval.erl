@@ -216,7 +216,7 @@ get_table_key(#tref{}=Tref, Key, St) when is_number(Key) ->
     end;
 get_table_key(#tref{}=Tref, Key, St) ->
     get_table_key_key(Tref, Key, St);
-get_table_key(nil, _Key, #luerl{with_rescue = true} = St) ->
+get_table_key(nil, _Key, #luerl{nil_safe = true} = St) ->
     {[nil], St};
 get_table_key(nil, Key, _St) ->
     lua_error({method_on_nil, Key});
@@ -707,8 +707,8 @@ exp({table,_,Fs}, St0) ->
     {[T],St2};
 %% 'and' and 'or' short-circuit so need special handling.
 exp({op, _, 'rescue', B}, St) ->
-    {Val, NSt} = exp(B, St#luerl{with_rescue = true}),
-    {Val, NSt#luerl{with_rescue = St#luerl.with_rescue}};
+    {Val, NSt} = exp(B, St#luerl{nil_safe = true}),
+    {Val, NSt#luerl{nil_safe = St#luerl.nil_safe}};
 exp({op,_,'and',L0,R0}, St0) ->
     {L1,St1} = exp(L0, St0),
     case is_true(L1) of
@@ -906,7 +906,7 @@ tc_tail(Fs, I0, Tes, St) ->
 %% op(Op, Arg1, Arg2, State) -> {[Ret],State}.
 %% The built-in operators.
 
-op('-', nil, #luerl{with_rescue = true} = St) ->
+op('-', nil, #luerl{nil_safe = true} = St) ->
     {[nil], St};
 op('-', A, St) ->
     numeric_op('-', A, <<"__unm">>, fun (N) -> -N end, St);
@@ -921,9 +921,9 @@ op(Op, A, _) -> badarg_error(Op, [A]).
 
 %% Numeric operators.
 
-op(_Op, nil, _A2, #luerl{with_rescue = true} = St) ->
+op(_Op, nil, _A2, #luerl{nil_safe = true} = St) ->
     {[nil], St};
-op(_Op, _A1, nil, #luerl{with_rescue = true} = St) ->
+op(_Op, _A1, nil, #luerl{nil_safe = true} = St) ->
     {[nil], St};
 op('+', A1, A2, St) ->
     numeric_op('+', A1, A2, <<"__add">>, fun (N1,N2) -> N1+N2 end, St);
