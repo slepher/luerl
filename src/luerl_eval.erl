@@ -906,6 +906,10 @@ tc_tail(Fs, I0, Tes, St) ->
 %% op(Op, Arg1, Arg2, State) -> {[Ret],State}.
 %% The built-in operators.
 
+op('==', nil, nil, #luerl{nil_safe = true} = St) ->
+    {[true], St};
+op('~=', nil, nil, #luerl{nil_safe = true} = St) ->
+    {[false], St};
 op('-', nil, #luerl{nil_safe = true} = St) ->
     {[nil], St};
 op('-', A, St) ->
