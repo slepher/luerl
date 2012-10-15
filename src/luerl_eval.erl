@@ -39,11 +39,11 @@
 
 %% Internal functions which can be useful "outside".
 -export([alloc_table/2,functioncall/3,get_table_key/3,
-	 getmetamethod/3,getmetamethod/4]).
+         getmetamethod/3,getmetamethod/4]).
 
 %% Currently unused internal functions, to suppress warnings.
--export([alloc_table/1,set_local_keys/3,set_local_keys_tab/3,
-	 get_local_key/2,set_env_name_env/4]).
+-export([alloc_table/1,set_local_keys/3,set_local_keys_tab/3, set_env_name_env/4,
+         set_local_key/3, get_local_key/2, set_env_key/3, get_env_key/2]).
 
 -import(luerl_lib, [lua_error/1]).		%Shorten this
 
