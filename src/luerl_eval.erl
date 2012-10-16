@@ -925,14 +925,14 @@ op('==', nil, nil, #luerl{nil_safe = true} = St) ->
     {[true], St};
 op('~=', nil, nil, #luerl{nil_safe = true} = St) ->
     {[false], St};
-op(_Op, nil, _A2, #luerl{nil_safe = true} = St) ->
-    {[nil], St};
-op(_Op, _A1, nil, #luerl{nil_safe = true} = St) ->
-    {[nil], St};
 op('..', nil, A,  #luerl{nil_safe = true} = St) ->
     {[A], St};
 op('..', A, nil,  #luerl{nil_safe = true} = St) ->
     {[A], St};
+op(_Op, nil, _A2, #luerl{nil_safe = true} = St) ->
+    {[nil], St};
+op(_Op, _A1, nil, #luerl{nil_safe = true} = St) ->
+    {[nil], St};
 op('+', A1, A2, St) ->
     numeric_op('+', A1, A2, <<"__add">>, fun (N1,N2) -> N1+N2 end, St);
 op('-', A1, A2, St) ->
