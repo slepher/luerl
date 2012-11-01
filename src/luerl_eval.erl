@@ -216,7 +216,7 @@ get_table_key(#tref{}=Tref, Key, St) when is_number(Key) ->
     end;
 get_table_key(#tref{}=Tref, Key, St) ->
     get_table_key_key(Tref, Key, St);
-get_table_key(List, Key, St) when is_integer(Key), is_list(List), size(List) >= Key ->
+get_table_key(List, Key, St) when is_integer(Key), is_list(List), length(List) >= Key ->
     {[lists:nth(Key, List)], St};
 get_table_key(List, _Key, St) when is_list(List) ->
     {[nil], St};
