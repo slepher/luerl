@@ -1,0 +1,19 @@
+%ng% -*- erlang -*-
+{application, luerl,
+ [
+  {description, "Luerl Application"},
+  {vsn, "1.0"},
+  {id,  "luerl"},
+  {modules,      [
+                 luerl,
+                 luerl_app,
+                 luerl_sup
+                 ]},
+  {registered,   []},
+  {applications, [kernel, stdlib, sasl]},
+  {mod,          {luerl_app, []}},
+  {env,          [
+                 ]
+  }
+ ]
+}.
